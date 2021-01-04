@@ -14,6 +14,15 @@ class SystemInfo:
             delimiter + "command: " + self.command + '\n' + "output: " + self.command_output + '\n' + "error: " + self.error + delimiter)
 
 
+command_dict = {
+    "netstat": ["sudo", "netstat", "-lnpvt"],
+    "df": ["sudo", "df", "-h"],
+    "free": ["sudo", "free", "-m"],
+    "iptables": ["sudo", "iptables", "-vnL"]
+
+}
+
+
 def append_content_to_file(command_object, file_path='/tmp/cef_get_info'):
     output = repr(command_object)
     command_tokens = ["sudo", "bash", "-c", "printf '" + "\n" + output + "' >> " + file_path]
@@ -22,40 +31,27 @@ def append_content_to_file(command_object, file_path='/tmp/cef_get_info'):
         time.sleep(2)
         o, e = write_new_content.communicate()
     except Exception:
-        print(str(command_object.command) + "was not run successfully")
+        print(str(command_object.command) + "was not documented successfully")
 
 
-def netstat_open_ports():
-    command_to_run = subprocess.Popen(["sudo", "netstat", "-lnpvt"], stdout=subprocess.PIPE)
-    print("Gathering open ports info")
-    o, e = command_to_run.communicate()
+def run_command(command):
+    command_to_run = subprocess.Popen(command_dict[command], stdout=subprocess.PIPE)
+    try:
+        o, e = command_to_run.communicate()
+    except Exception:
+        print(command_dict[command] + "failed to run")
+        if e is None:
+            e = Exception
+        command_object = SystemInfo(command, "None", e)
+        append_content_to_file(command_object)
     o = o.decode(encoding='UTF-8')
-    netstat = SystemInfo('netstat -lnpvt', str(o), str(e))
-    append_content_to_file(netstat)
-
-
-def disk_space():
-    command_to_run = subprocess.Popen(["sudo", "df", "-h"], stdout=subprocess.PIPE)
-    print("Gathering free disk space info")
-    o, e = command_to_run.communicate()
-    o = o.decode(encoding='UTF-8')
-    df = SystemInfo('df -h', str(o), str(e))
-    append_content_to_file(df)
-
-
-def memory_space():
-    command_to_run = subprocess.Popen(["sudo", "free", "-m"], stdout=subprocess.PIPE)
-    print("Gathering system memory info")
-    o, e = command_to_run.communicate()
-    o = o.decode(encoding='UTF-8')
-    df = SystemInfo('free -m', str(o), str(e))
-    append_content_to_file(df)
+    command_object = SystemInfo(command, o)
+    append_content_to_file(command_object)
 
 
 def main():
-    netstat_open_ports()
-    disk_space()
-    memory_space()
+    for command in command_dict:
+        run_command(command)
 
 
 if __name__ == '__main__':
