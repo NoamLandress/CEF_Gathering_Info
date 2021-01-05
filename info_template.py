@@ -11,7 +11,7 @@ class SystemInfo:
     def __repr__(self):
         delimiter = "\n-----------------------------------\n"
         return str(
-            delimiter + "command: " + self.command + '\n' + "output: " + self.command_output + '\n' + "error: " + self.error + delimiter)
+            delimiter + "command: " + self.command + '\n' + "output: " + self.command_output + delimiter)
 
 
 command_dict = {
@@ -31,13 +31,12 @@ def append_content_to_file(command_object, file_path='/tmp/cef_get_info'):
     output = repr(command_object).replace('%', '%%')
     command_tokens = ["sudo", "bash", "-c", "printf '" + "\n" + output + "' >> " + file_path]
     try:
-        write_new_content = subprocess.Popen(command_tokens, stdout=subprocess.PIPE)
+        write_new_content = subprocess.Popen(command_tokens, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         time.sleep(0.5)
-        o, e = write_new_content.communicate()
+        o = write_new_content.communicate()
     except Exception:
         print(str(command_object.command) + "was not documented successfully")
-    if e is not None:
-        print(str(command_object.command) + "was not documented successfully")
+
 
 
 def run_command(command):
@@ -46,10 +45,6 @@ def run_command(command):
         o, e = command_to_run.communicate()
     except Exception:
         print(command_dict[command] + "failed to run")
-        if e is None:
-            e = Exception
-        command_object = SystemInfo(command, "None", e)
-        append_content_to_file(command_object)
     o = o.decode(encoding='UTF-8')
     command_object = SystemInfo(command, o)
     append_content_to_file(command_object)
