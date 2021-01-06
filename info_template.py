@@ -20,10 +20,26 @@ command_dict = {
     "free": "sudo free -m",
     "iptables": "sudo iptables -vnL --line",
     "selinux": "sudo getenforce",
-    "os_version": "cat /etc/issue",
-    "python_version": "python -V",
-    "RAM_stats": "cat /proc/meminfo",
-    "WD_list": "ls -l ."
+    "os_version": "sudo cat /etc/issue",
+    "python_version": "sudo python -V",
+    "ram_stats": "sudo cat /proc/meminfo",
+    "cron_jobs": "sudo crontab -l",
+    "ws_list": "sudo ls -l .",
+    "internet_connection": "sudo curl -D - http://google.com",
+    "sudoers_list": "sudo cat /etc/sudoers",
+    "rotation_configuration": "sudo cat /etc/logrotate.conf",
+#    "top_processes": "sudo top"
+#    "omsagent_process": "grep omsagent \<\(ps -aux\)"
+    "rsyslog_conf": "sudo cat /etc/rsyslog.conf",
+    "rsyslog_dir": "sudo ls -l /etc/rsyslog.d/",
+    "rsyslog_regex": "sudo cat /etc/rsyslog.d/security-config-omsagent.conf",
+    "syslog_conf": "sudo cat /etc/syslog-ng/syslog-ng.conf",
+    "syslog_dir": "sudo ls -l /etc/syslog-ng/conf.d/",
+    "syslog_regex": "sudo cat /etc/syslog-ng/conf.d/security-config-omsagent.conf",
+    "agent_log_snip": "sudo tail -15 /var/opt/microsoft/omsagent/log/omsagent.log",
+    "agent_config_dir": "sudo ls -l /etc/opt/microsoft/omsagent/conf/omsagent.d/",
+    "agent_cef_config": "sudo cat /etc/opt/microsoft/omsagent/conf/omsagent.d/security_events.conf"
+#    "tcpdump": "sudo timeout 2 tcpdump -A -ni any port 25226 -vv"
 }
 
 
@@ -32,7 +48,7 @@ def append_content_to_file(command_object, file_path='/tmp/cef_get_info'):
     command_tokens = ["sudo", "bash", "-c", "printf '" + "\n" + output + "' >> " + file_path]
     try:
         write_new_content = subprocess.Popen(command_tokens, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        time.sleep(0.5)
+#        time.sleep(0.5)
         o = write_new_content.communicate()
     except Exception:
         print(str(command_object.command) + "was not documented successfully")
