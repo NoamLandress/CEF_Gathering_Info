@@ -3,10 +3,9 @@ import subprocess
 
 
 class SystemInfo:
-    def __init__(self, command, command_output, error="No error received"):
+    def __init__(self, command, command_output="No output received"):
         self.command = command
         self.command_output = command_output
-        self.error = error
 
     def __repr__(self):
         delimiter = "\n-----------------------------------\n"
@@ -14,61 +13,125 @@ class SystemInfo:
             delimiter + "command: " + self.command + '\n' + "output: " + self.command_output + delimiter)
 
 
-command_dict = {
+output_file_path = '/tmp/cef_get_info'
+
+basic_command_dict = {
     "netstat": "sudo netstat -lnpvt",
     "df": "sudo df -h",
     "free": "sudo free -m",
     "iptables": "sudo iptables -vnL --line",
-    "selinux": "sudo getenforce",
+    "selinux": "sudo cat /etc/selinux/config",
     "os_version": "sudo cat /etc/issue",
     "python_version": "sudo python -V",
     "ram_stats": "sudo cat /proc/meminfo",
     "cron_jobs": "sudo crontab -l",
-    "ws_list": "sudo ls -l .",
+    "wd_list": "sudo ls -l .",
     "internet_connection": "sudo curl -D - http://google.com",
     "sudoers_list": "sudo cat /etc/sudoers",
     "rotation_configuration": "sudo cat /etc/logrotate.conf",
-#    "top_processes": "sudo top"
-#    "omsagent_process": "grep omsagent \<\(ps -aux\)"
     "rsyslog_conf": "sudo cat /etc/rsyslog.conf",
     "rsyslog_dir": "sudo ls -l /etc/rsyslog.d/",
+    "rsyslog_dir_content": "sudo find /etc/rsyslog.d/ -type f -exec cat {} \\;",
     "rsyslog_regex": "sudo cat /etc/rsyslog.d/security-config-omsagent.conf",
-    "syslog_conf": "sudo cat /etc/syslog-ng/syslog-ng.conf",
-    "syslog_dir": "sudo ls -l /etc/syslog-ng/conf.d/",
-    "syslog_regex": "sudo cat /etc/syslog-ng/conf.d/security-config-omsagent.conf",
+    "syslog_ng_conf": "sudo cat /etc/syslog-ng/syslog-ng.conf",
+    "syslog_ng_dir": "sudo ls -l /etc/syslog-ng/conf.d/",
+    "syslog_ng_dir_content": "sudo find /etc/syslog-ng/conf.d/ -type f -exec cat {} \\;",
+    "syslog_ng_regex": "sudo cat /etc/syslog-ng/conf.d/security-config-omsagent.conf",
     "agent_log_snip": "sudo tail -15 /var/opt/microsoft/omsagent/log/omsagent.log",
     "agent_config_dir": "sudo ls -l /etc/opt/microsoft/omsagent/conf/omsagent.d/",
-    "agent_cef_config": "sudo cat /etc/opt/microsoft/omsagent/conf/omsagent.d/security_events.conf"
-#    "tcpdump": "sudo timeout 2 tcpdump -A -ni any port 25226 -vv"
+    "agent_cef_config": "sudo cat /etc/opt/microsoft/omsagent/conf/omsagent.d/security_events.conf",
+    "tcpdump": "sudo timeout 2 tcpdump -A -ni any port 25226 -vv"
+}
+
+# command with a pipe are considered special commands
+advanced_command_dict = {
+    "top_processes": ["sudo top -bcn1 -w512", "head -n 20"],
+    "omsagent_process": ["sudo ps -aux", "grep omsagent"]
 }
 
 
-def append_content_to_file(command_object, file_path='/tmp/cef_get_info'):
+def print_notice(input_str):
+    '''
+    Print given text in white background
+    :param input_str:
+    '''
+    print("\033[0;30;47m" + input_str + "\033[0m")
+
+
+def append_content_to_file(command_object, file_path=output_file_path):
+    """
+
+    :param command_object: consists of the name and the output
+    :param file_path: a file to share the commands outputs
+    """
     output = repr(command_object).replace('%', '%%')
     command_tokens = ["sudo", "bash", "-c", "printf '" + "\n" + output + "' >> " + file_path]
     try:
         write_new_content = subprocess.Popen(command_tokens, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-#        time.sleep(0.5)
-        o = write_new_content.communicate()
+        time.sleep(0.1)
+        write_new_content.communicate()
     except Exception:
         print(str(command_object.command) + "was not documented successfully")
 
 
-
 def run_command(command):
-    command_to_run = subprocess.Popen(command_dict[command].split(' '), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    """
+
+    :param command: the key value pair from the command dict
+    :return: a command object consisting of a name and an output
+    """
+    command_to_run = subprocess.Popen(basic_command_dict[command].split(' '), stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT)
     try:
         o, e = command_to_run.communicate()
     except Exception:
-        print(command_dict[command] + "failed to run")
+        print(basic_command_dict[command] + "failed to run")
     o = o.decode(encoding='UTF-8')
     command_object = SystemInfo(command, o)
-    append_content_to_file(command_object)
+    return command_object
+
+
+def run_special_command(command):
+    """
+
+    :param command: the key value pair from the special command dict
+    :return: a command object consisting of a name and an output
+    """
+    first_command = subprocess.Popen(advanced_command_dict[command][0].split(' '), stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT)
+    second_command = subprocess.Popen(advanced_command_dict[command][1].split(' '), stdin=first_command.stdout,
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:
+        o, e = second_command.communicate()
+    except Exception:
+        print(command + "command failed to run")
+    o = o.decode(encoding='UTF-8')
+    command_object = SystemInfo(command, o)
+    return command_object
+
+
+def clean_up(path = output_file_path):
+    clean_up_command = subprocess.Popen(['rm', '-rf', path, '>', '/dev/null', '2>&1'],
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:
+        o, e = clean_up_command.communicate()
+    except Exception:
+        print("Clean up command failed to run")
+
 
 
 def main():
-    for command in command_dict:
-        run_command(command)
+    print_notice("Note this script should be run in elevated privileges")
+    print("Beginning to collect server data")
+    clean_up()
+    for command in basic_command_dict.keys():
+        command_object = run_command(command)
+        append_content_to_file(command_object)
+
+    for command in advanced_command_dict.keys():
+        command_object = run_special_command(command)
+        append_content_to_file(command_object)
+    print_notice("Data collection complete. Please provide CSS with the content of the file {}".format(output_file_path))
 
 
 if __name__ == '__main__':
