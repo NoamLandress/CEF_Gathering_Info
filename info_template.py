@@ -1,3 +1,26 @@
+# ----------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# ----------------------------------------------------------------------------
+# This script is used to install CEF agent on a linux machine an configure the
+# syslog daemon on the linux machine.
+# Supported OS:
+#   64-bit
+#       CentOS 7 and 8
+#       Amazon Linux 2017.09
+#       Oracle Linux 7
+#       Red Hat Enterprise Linux Server 7 and 8
+#       Debian GNU/Linux 8 and 9
+#       Ubuntu Linux 14.04 LTS, 16.04 LTS and 18.04 LTS
+#       SUSE Linux Enterprise Server 12, 15
+#   32-bit
+#       CentOS 7 and 8
+#       Oracle Linux 7
+#       Red Hat Enterprise Linux Server 7 and 8
+#       Debian GNU/Linux 8 and 9
+#       Ubuntu Linux 14.04 LTS and 16.04 LTS
+# For more information please check the OMS-Agent-for-Linux documentation.
+#
+
 import time
 import subprocess
 
@@ -16,6 +39,7 @@ class SystemInfo:
 output_file_path = '/tmp/cef_get_info'
 
 basic_command_dict = {
+    "date": "sudo date",
     "netstat": "sudo netstat -lnpvt",
     "df": "sudo df -h",
     "free": "sudo free -m",
@@ -31,14 +55,12 @@ basic_command_dict = {
     "rotation_configuration": "sudo cat /etc/logrotate.conf",
     "rsyslog_conf": "sudo cat /etc/rsyslog.conf",
     "rsyslog_dir": "sudo ls -l /etc/rsyslog.d/",
-    "rsyslog_dir_content": "sudo find /etc/rsyslog.d/ -type f -exec cat {} \\;",
-    "rsyslog_regex": "sudo cat /etc/rsyslog.d/security-config-omsagent.conf",
+    "rsyslog_dir_content": "sudo find /etc/rsyslog.d/ -type f -exec cat {} ;",
     "syslog_ng_conf": "sudo cat /etc/syslog-ng/syslog-ng.conf",
     "syslog_ng_dir": "sudo ls -l /etc/syslog-ng/conf.d/",
-    "syslog_ng_dir_content": "sudo find /etc/syslog-ng/conf.d/ -type f -exec cat {} \\;",
-    "syslog_ng_regex": "sudo cat /etc/syslog-ng/conf.d/security-config-omsagent.conf",
+    "syslog_ng_dir_content": "find /etc/syslog-ng/conf.d/ -type f -exec cat {} ;",
     "agent_log_snip": "sudo tail -15 /var/opt/microsoft/omsagent/log/omsagent.log",
-    "agent_config_dir": "sudo ls -l /etc/opt/microsoft/omsagent/conf/omsagent.d/",
+    "agent_config_dir": "sudo ls -lR /etc/opt/microsoft/omsagent/",
     "agent_cef_config": "sudo cat /etc/opt/microsoft/omsagent/conf/omsagent.d/security_events.conf",
     "tcpdump": "sudo timeout 2 tcpdump -A -ni any port 25226 -vv"
 }
@@ -84,6 +106,7 @@ def run_command(command):
                                       stderr=subprocess.STDOUT)
     try:
         o, e = command_to_run.communicate()
+        print(e)
     except Exception:
         print(basic_command_dict[command] + "failed to run")
     o = o.decode(encoding='UTF-8')
@@ -110,14 +133,16 @@ def run_special_command(command):
     return command_object
 
 
-def clean_up(path = output_file_path):
+def clean_up(path=output_file_path):
+    """
+    :param path: A path to delete
+    """
     clean_up_command = subprocess.Popen(['rm', '-rf', path, '>', '/dev/null', '2>&1'],
-                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     try:
         o, e = clean_up_command.communicate()
     except Exception:
         print("Clean up command failed to run")
-
 
 
 def main():
@@ -131,7 +156,8 @@ def main():
     for command in advanced_command_dict.keys():
         command_object = run_special_command(command)
         append_content_to_file(command_object)
-    print_notice("Data collection complete. Please provide CSS with the content of the file {}".format(output_file_path))
+    print_notice(
+        "Data collection complete. Please provide CSS with the content of the file {}".format(output_file_path))
 
 
 if __name__ == '__main__':
