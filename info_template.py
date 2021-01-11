@@ -106,7 +106,6 @@ def run_command(command):
                                       stderr=subprocess.STDOUT)
     try:
         o, e = command_to_run.communicate()
-        print(e)
     except Exception:
         print(basic_command_dict[command] + "failed to run")
     o = o.decode(encoding='UTF-8')
@@ -137,7 +136,7 @@ def clean_up(path=output_file_path):
     """
     :param path: A path to delete
     """
-    clean_up_command = subprocess.Popen(['rm', '-rf', path, '>', '/dev/null', '2>&1'],
+    clean_up_command = subprocess.Popen(['rm', path, '2>', '/dev/null'],
                                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     try:
         o, e = clean_up_command.communicate()
