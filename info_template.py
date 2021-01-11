@@ -36,9 +36,11 @@ class SystemInfo:
             delimiter + "command: " + self.command + '\n' + "output: " + self.command_output + delimiter)
 
 
+script_version = '1.0'
 output_file_path = '/tmp/cef_get_info'
 
 basic_command_dict = {
+    "script_version": "echo {}".format(script_version),
     "date": "sudo date",
     "netstat": "sudo netstat -lnpvt",
     "df": "sudo df -h",
