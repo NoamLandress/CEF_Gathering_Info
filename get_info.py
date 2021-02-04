@@ -57,10 +57,10 @@ basic_command_dict = {
     "rotation_configuration": "sudo cat /etc/logrotate.conf",
     "rsyslog_conf": "sudo cat /etc/rsyslog.conf",
     "rsyslog_dir": "sudo ls -l /etc/rsyslog.d/",
-    "rsyslog_dir_content": "sudo find /etc/rsyslog.d/ -type f -exec cat {} ;",
+    "rsyslog_dir_content": "sudo find /etc/rsyslog.d/ -type f -exec cat {} \;",
     "syslog_ng_conf": "sudo cat /etc/syslog-ng/syslog-ng.conf",
     "syslog_ng_dir": "sudo ls -l /etc/syslog-ng/conf.d/",
-    "syslog_ng_dir_content": "find /etc/syslog-ng/conf.d/ -type f -exec cat {} ;",
+    "syslog_ng_dir_content": "find /etc/syslog-ng/conf.d/ -type f -exec cat {} \;",
     "agent_log_snip": "sudo tail -15 /var/opt/microsoft/omsagent/log/omsagent.log",
     "agent_config_dir": "sudo ls -lR /etc/opt/microsoft/omsagent/",
     "agent_cef_config": "sudo cat /etc/opt/microsoft/omsagent/conf/omsagent.d/security_events.conf",
@@ -92,7 +92,6 @@ def append_content_to_file(command_object, file_path=output_file_path):
     command_tokens = ["sudo", "bash", "-c", "printf '" + "\n" + output + "' >> " + file_path]
     try:
         write_new_content = subprocess.Popen(command_tokens, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        time.sleep(0.1)
         write_new_content.communicate()
     except Exception:
         print(str(command_object.command) + "was not documented successfully")
@@ -153,10 +152,12 @@ def main():
     for command in basic_command_dict.keys():
         command_object = run_command(command)
         append_content_to_file(command_object)
+        time.sleep(1)
 
     for command in advanced_command_dict.keys():
         command_object = run_special_command(command)
         append_content_to_file(command_object)
+        time.sleep(1)
     print_notice(
         "Data collection complete. Please provide CSS with the content of the file {}".format(output_file_path))
 
